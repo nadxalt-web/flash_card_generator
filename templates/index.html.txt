@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Flashcard Generator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #f5f5f5;
+        }
+        h1 { color: #333; }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            resize: vertical;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 24px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover { background: #4338ca; }
+        #status { margin-top: 10px; color: #666; }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-top: 12px;
+            border: 1px solid #ddd;
+        }
+        .card p { margin: 4px 0; }
+        .label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI Flashcard Generator</h1>
+    <p>Paste your notes below and click generate!</p>
+
+    <textarea id="notes" placeholder="Paste your notes here..."></textarea>
+
+    <br>
+    <label>Number of cards:</label>
+    <input type="number" id="num_cards" value="5" min="1" max="20" style="width:60px; margin-left:8px;">
+    <br>
+    <button onclick="generate()">Generate Flashcards</button>
+    <button onclick="download()" id="download-btn" style="background:#16a34a; display:none;">
+    Download CSV
+</button>
+    <p id="status"></p>
+
+    <div id="cards"></div>
+
+    <script>
+        async function generate() {
+            const notes = document.getElementById('notes').value;
+            const num_cards = document.getElementById('num_cards').value;
+
+            if (!notes.trim()) {
+                alert('Please paste some notes first!');
+                return;
+            }
+
+            document.getElementById('status').innerText = 'Generating... please wait';
+            document.getElementById('cards').innerHTML = '';
+
+            const response = await fetch('/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes, num_cards })
+            });
+
+            const cards = await response.json();
+            document.getElementById('status').innerText = `Generated ${cards.length} flashcards!`;
+	    document.getElementById('download-btn').style.display = 'inline-block';
+window.generatedCards = cards;
+	async function download() {
+    const response = await fetch('/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cards: window.generatedCards })
+    });
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'flashcards.csv';
+    a.click();
+}
+
+            cards.forEach((card, i) => {
+                document.getElementById('cards').innerHTML += `
+                    <div class="card">
+                        <p class="label">Q ${i + 1}</p>
+                        <p>${card.question}</p>
+                        <p class="label">A</p>
+                        <p>${card.answer}</p>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>

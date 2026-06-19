@@ -3,6 +3,10 @@ import requests
 import json
 import re
 import csv
+from flask import send_file
+import io
+
+
 
 app = Flask(__name__)
 
@@ -43,5 +47,21 @@ def generate():
     cards = generate_fc(notes, num_cards)
     return jsonify(cards)
 
+@app.route('/download', methods=['POST'])
+def download():
+    data = request.json
+    cards = data['cards']
+    
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=['question', 'answer'])
+    writer.writeheader()
+    writer.writerows(cards)
+    
+    bytes_output = io.BytesIO()
+    bytes_output.write(output.getvalue().encode('utf-8'))
+    bytes_output.seek(0)
+    
+    return send_file(bytes_output, mimetype='text/csv',
+                     download_name='flashcards.csv', as_attachment=True)
 if __name__ == '__main__':
     app.run(debug=True)
